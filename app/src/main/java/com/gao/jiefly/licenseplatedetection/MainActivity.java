@@ -52,6 +52,8 @@ public class MainActivity extends Activity {
     private static final String TAG = "MainActivity";
     private static final String DIR_PATH = "sdcard/store";
     private static final int GET_PICTURE = 0;
+    @InjectView(R.id.btn4)
+    Button mBtn4;
 
 
     private boolean isFirstResume = false;
@@ -137,7 +139,7 @@ public class MainActivity extends Activity {
         Imgproc.medianBlur(srcMat1, dstMat1, ksize);
     }
 
-    @OnClick({R.id.btnGetImg, R.id.btn2, R.id.btn3})
+    @OnClick({R.id.btnGetImg, R.id.btn2, R.id.btn3,R.id.btn4})
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.btnGetImg:
@@ -149,7 +151,7 @@ public class MainActivity extends Activity {
                 startActivityForResult(intentGetPic, GET_PICTURE);
                 break;
             case R.id.btn2:
-                deal(null);
+                detechColor("test");
                 break;
             case R.id.btn3:
                 final Vector<String> paths = Util.GetImageFileName(DIR_PATH);
@@ -165,20 +167,47 @@ public class MainActivity extends Activity {
                     Utils.bitmapToMat(srcBitmap, srcMat);
                     Gray(srcMat, grayMat);
                     dstMat = grayMat;
-                    deal(paths.get(i));
-                    //detechColor(paths.get(i));
-                    deal(paths.get(i));
+                    //deal(paths.get(i));
+                    detechColor(paths.get(i));
                 }
                 LogE("end:" + SystemClock.currentThreadTimeMillis() + "\n花费时间：" + (SystemClock.currentThreadTimeMillis() - currentTime));
                 break;
+            case R.id.btn4:
+//                图像垂直投影
+                Bitmap testBitmap = BitmapFactory.decodeResource(getResources(),R.drawable.test);
+                Mat testMat = new Mat();
+                Utils.bitmapToMat(testBitmap,testMat);
+                int[] result = Util.VerticalProjection(testMat);
+                StringBuilder stringBuilder = new StringBuilder();
+                for (int i=0;i<result.length;i++){
+                   stringBuilder.append(result[i]).append(",");
+                }
+                LogE(stringBuilder.toString());
+                /*List<double[]> value =
+                int count =0;
+                for (double[] d:value){
+                    count++;
+                    LogE("第"+count+"个数据：");
+                    for (double dd:d){
+                        LogE(dd+"");
+                    }
+                }*/
+
+                break;
         }
     }
+
+
 
     private void detechColor(String fileName) {
         Imgproc.cvtColor(srcMat, hsvMat, COLOR_RGB2HSV);
         Scalar lowerThreshold = new Scalar(75, 90, 90);
         Scalar upperThreshold = new Scalar(140, 255, 255);
         Core.inRange(hsvMat, lowerThreshold, upperThreshold, dstMat);
+
+        Bitmap sobelBitmap = Bitmap.createBitmap(srcBitmap.getWidth(), srcBitmap.getHeight(), Bitmap.Config.RGB_565);
+        Utils.matToBitmap(dstMat, sobelBitmap);
+        mIvDone1.setImageBitmap(sobelBitmap);
         List<MatOfPoint> contours = new ArrayList<>();
 
         Imgproc.dilate(hsvMat, hsvMat, new Mat());
@@ -191,12 +220,12 @@ public class MainActivity extends Activity {
     private void saveResult(MatOfPoint maxContours, String fileName) {
         if (maxContours != null) {
             Rect rect = Imgproc.boundingRect(maxContours);
-            int x, y, w, h;
-            x = rect.x;
-            y = rect.y;
-            w = rect.width;
-            h = rect.height;
-            Imgproc.rectangle(srcMat, new Point(x, y), new Point(x + w, y + h), new Scalar(0, 255, 0), 2);
+//            int x, y, w, h;
+//            x = rect.x;
+//            y = rect.y;
+//            w = rect.width;
+//            h = rect.height;
+            //Imgproc.rectangle(srcMat, new Point(x, y), new Point(x + w, y + h), new Scalar(0, 255, 0), 2);
             saveMat = new Mat(rect.size(), CvType.CV_8UC1);
             Mat m = new Mat(srcMat, rect);
             Core.copyMakeBorder(m, saveMat, 0, 0, 0, 0, Core.BORDER_DEFAULT);
@@ -246,11 +275,15 @@ public class MainActivity extends Activity {
         List<MatOfPoint> newMatList = new ArrayList<>();
         //初步定位车牌
         filterContours(newMatList, contours);
+       /* if (newMatList.size()==1){
+            LogE("多余一个车牌候选区："+fileName);
+            advanceFilter(newMatList, fileName);
+        }
         for (int i = 0; i < newMatList.size(); i++) {
             //drawContours(srcMat,newMatList,i,new Scalar(255,0,0),2);
-        }
+        }*/
         //对车牌进行精定位
-        advanceFilter(newMatList, fileName);
+
 
         MatOfPoint maxContours = Util.getMaxMatOfPoint(newMatList);
         saveResult(maxContours, fileName);
@@ -260,7 +293,7 @@ public class MainActivity extends Activity {
 
     private void advanceFilter(List<MatOfPoint> newMatList, String fileName) {
         for (int i = 0; i < newMatList.size(); i++) {
-            saveResult(newMatList.get(i),i+fileName);
+            saveResult(newMatList.get(i), i + fileName);
         }
     }
 
@@ -298,18 +331,19 @@ public class MainActivity extends Activity {
                 Point[] points = new Point[4];
                 rotatedRect.points(points);
 
-                float r = (float) rotatedRect.size.width/(float) rotatedRect.size.height;
+                float r = (float) rotatedRect.size.width / (float) rotatedRect.size.height;
                 double angle = rotatedRect.angle;
-                if (r>2&&r<5) {
-                    if (angle - 40 < 0 && angle + 40 > 0) {
-                        for (int i = 0; i < 4; i++) {
-                            //line(image, vertices[i], vertices[(i + 1) % 4], Scalar(0, 255, 0));//四个角点连成线，最终形成旋转的矩形。
-                            line(srcMat, points[i], points[(i + 1) % 4], new Scalar(255, 0, 0));
-                            newMatList.add(matOfPoint);
-                        }
+                if (r > 2 && r < 4) {
+                    /*if (angle - 40 < 0 && angle + 40 > 0) {
+
+                    }*/
+                    for (int i = 0; i < 4; i++) {
+                        //line(image, vertices[i], vertices[(i + 1) % 4], Scalar(0, 255, 0));//四个角点连成线，最终形成旋转的矩形。
+                        line(srcMat, points[i], points[(i + 1) % 4], new Scalar(255, 0, 0));
+                        newMatList.add(matOfPoint);
                     }
                 }
-                LogE("angle:" + rotatedRect.angle+"r:"+r);
+                LogE("angle:" + rotatedRect.angle + "r:" + r);
 
                 /*(double) (rect.width / rect.height) > 2.5 || (double) (rect.width / rect.height) < 4.0*/
                 /*if (rotatedRect.angle) {

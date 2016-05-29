@@ -6,7 +6,9 @@ import android.graphics.Bitmap;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
+import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -47,7 +49,7 @@ public class Util {
 
     public static List<String> getPicPath(String dirPath, Context context) {
         List<String> paths = new ArrayList<>();
-        String selection = MediaStore.Images.Media.DATA +  " like %?";
+        String selection = MediaStore.Images.Media.DATA + " like %?";
         String[] selectionArgs = {dirPath + "%"};
         Cursor cursor = context.getContentResolver().query(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
@@ -77,15 +79,52 @@ public class Util {
         }
         return vecFile;
     }
-    public static MatOfPoint getMaxMatOfPoint(List<MatOfPoint> matOfPoints){
-        if (matOfPoints.size()<=0)
+
+    public static MatOfPoint getMaxMatOfPoint(List<MatOfPoint> matOfPoints) {
+        if (matOfPoints.size() <= 0)
             return null;
         MatOfPoint maxMatOfPoint = matOfPoints.get(0);
-       for (MatOfPoint matOfPoint:matOfPoints){
-           if (maxMatOfPoint.height()<matOfPoint.height()){
-               maxMatOfPoint = matOfPoint;
-           }
-       }
+        for (MatOfPoint matOfPoint : matOfPoints) {
+            if (maxMatOfPoint.height() < matOfPoint.height()) {
+                maxMatOfPoint = matOfPoint;
+            }
+        }
         return maxMatOfPoint;
+    }
+
+
+    public static int[] VerticalProjection(Mat mat) {
+        /*
+        * 1.将mat灰度化
+        * 2.二值化
+        * 3.逐列扫描mat，记录下累加值
+        * 4.返回一个一维数组
+        * */
+        Mat srcMat = mat;
+        Mat grayMat = new Mat();
+        Mat binMat = new Mat();
+
+//        灰度化
+        Imgproc.cvtColor(srcMat, grayMat, Imgproc.COLOR_RGB2GRAY);
+//        二值化
+        Imgproc.threshold(grayMat, binMat, 100, 255, Imgproc.THRESH_BINARY_INV);
+        int row = binMat.rows();
+        int col = binMat.cols();
+        // List<double[]> result = new ArrayList<>();
+        int[] result = new int[col];
+        for (int i = 0; i < col; i++) {
+            for (int j = 0; j < row; j++) {
+                double[] value = binMat.get(j,i);
+                if (value[0] > 0) {
+                    result[i] += 1;
+                }
+                /*Log.e("jiefly", value.length + "value长度");
+                for (double d : value) {
+                    Log.i("jiefly", d + "row:" + i + "col:" + j);
+                }*/
+            }
+
+        }
+        return result;
     }
 }
