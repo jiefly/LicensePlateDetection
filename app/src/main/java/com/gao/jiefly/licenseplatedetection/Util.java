@@ -67,6 +67,7 @@ public class Util {
         }
         return paths;
     }
+
     /*
     * 获取一个文件夹中所有.jpg文件路径
     * 参数fileAbsolutePath：文件夹绝对路径
@@ -102,6 +103,7 @@ public class Util {
         }
         return maxMatOfPoint;
     }
+
     /*
     * 用于分割车牌中的字符
     * 大致流程为：遍历行中的投影值，
@@ -115,7 +117,7 @@ public class Util {
     * 参数charCount：要分割的字符个数
     * 返回值：分割后的字符图片集合
     * */
-    public static List<Mat> cutV(Mat mat,int[] resultV,int minValue,int charCount){
+    public static List<Mat> cutV(Mat mat, int[] resultV, int minValue, int charCount) {
         int len = resultV.length;
         int count = charCount;
 //      存储分割后的mat
@@ -123,27 +125,34 @@ public class Util {
 
         int startX = 0;
         int endX = 0;
-        for (int i=0;i<len-5;i++){
-                if (startX == 0){
-                    if (resultV[i]<minValue&&resultV[i+2]>minValue){
+        for (int i = 0; i < len - 5; i++) {
+            if (startX == 0) {
+                if (resultV[i] < minValue) {
+                    if (resultV[i + 1] > minValue
+                            && resultV[i + 2] > minValue
+                            && resultV[i + 3] > minValue
+                            && resultV[i + 4] > minValue)
+                    {
                         startX = i;
-                        i +=2;
                     }
-                }else {
-                    if (resultV[i]<minValue){
-                        endX = i;
-                        count--;
-                        results.add(getRoiMat(mat,startX,endX));
 
-                        if (count<=0)
-                            return results;
-                        startX = 0;
-                        endX = 0;
-                    }
+                }
+            } else {
+                if (resultV[i] < minValue) {
+                    endX = i;
+                    count--;
+                    results.add(getRoiMat(mat, startX, endX));
+
+                    if (count <= 0)
+                        return results;
+                    startX = 0;
+                    endX = 0;
                 }
             }
+        }
         return results;
     }
+
     /*
     * 用于切割车牌上下不必要的部分
     * 参数mat:要分割的图像的mat
@@ -158,12 +167,14 @@ public class Util {
 //        在前三分之一中找出上半部分分割点
         for (int i = 0; i < len / 3; i++) {
             if (resultH[i] < minValue) {
-                top = i;
+                if (checkAfterPointIsRight(resultH, minValue, i)) {
+                    top = i;
+                }
             }
         }
 //        在后三分之一中找出后半部分分割点
         for (int i = (2 * len) / 3; i < len; i++) {
-            if (resultH[i] < minValue) {
+            if (resultH[i] < minValue / 2 && i > top) {
                 bottom = i;
                 break;
             }
@@ -174,12 +185,13 @@ public class Util {
         return new Mat(mat, roi);
     }
 
-    public static Mat getRoiMat(Mat mat,int start,int end){
-        Point startPoint = new Point(start,0);
-        Point endPoint = new Point(end,mat.rows());
-        Rect roi = new Rect(startPoint,endPoint);
-        return new Mat(mat,roi);
+    public static Mat getRoiMat(Mat mat, int start, int end) {
+        Point startPoint = new Point(start, 0);
+        Point endPoint = new Point(end, mat.rows());
+        Rect roi = new Rect(startPoint, endPoint);
+        return new Mat(mat, roi);
     }
+
     /*
     * type为1时返回垂直方向投影，key为V
     * type为0时返回水平方向投影，key为H
@@ -199,7 +211,7 @@ public class Util {
 //        灰度化
         Imgproc.cvtColor(mat, grayMat, Imgproc.COLOR_RGB2GRAY);
 //        二值化
-        Imgproc.threshold(grayMat, binMat, 100, 255, Imgproc.THRESH_BINARY);
+        Imgproc.threshold(grayMat, binMat, 150, 255, Imgproc.THRESH_OTSU);
         int row = binMat.rows();
         int col = binMat.cols();
         if (type == 1) {
@@ -213,7 +225,7 @@ public class Util {
                     }
                 }
             }
-            Log.e("jiefly",resultV.length+"");
+            Log.e("jiefly", resultV.length + "");
             result.put("V", resultV);
         } else if (type == 0) {
             int[] resultH = new int[row];
@@ -228,7 +240,7 @@ public class Util {
             }
 
             result.put("H", resultH);
-        }else {
+        } else {
             int[] resultV = new int[col];
 //        垂直方向投影，用来分割字符
             for (int i = 0; i < col; i++) {
@@ -254,5 +266,19 @@ public class Util {
             result.put("H", resultH);
         }
         return result;
+    }
+
+    /*
+    * 用来验证上下切割时的正确性
+    * 判断起点之后的若干个点是否也符合条件
+    * 判断三分之一的高度内的点
+    * */
+    public static boolean checkAfterPointIsRight(int[] results, int minValue, int currentPosition) {
+        for (int i = currentPosition; i < currentPosition + results.length / 10; i++) {
+//            之后的1/10区间内都得大于阈值
+            if (results[i + 1] < minValue)
+                return false;
+        }
+        return true;
     }
 }

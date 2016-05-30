@@ -42,6 +42,7 @@ import butterknife.InjectView;
 import butterknife.OnClick;
 
 import static org.opencv.imgproc.Imgproc.CHAIN_APPROX_NONE;
+import static org.opencv.imgproc.Imgproc.COLOR_RGB2GRAY;
 import static org.opencv.imgproc.Imgproc.COLOR_RGB2HSV;
 import static org.opencv.imgproc.Imgproc.CV_SHAPE_RECT;
 import static org.opencv.imgproc.Imgproc.GaussianBlur;
@@ -237,9 +238,11 @@ public class MainActivity extends Activity {
                 mIvDone.setImageBitmap(bitmap);
                 */
 //                这是切割好上下边之后的mat
-                Mat resultMat = Util.cutH(testMat, resultH, testMat.rows() / 6);
+                Mat resultMat = Util.cutH(testMat, resultH,100);
                 Bitmap afterBitmap = getBitmapFromMat(resultMat);
-                //mIvDone2.setImageBitmap(afterBitmap);
+                Imgproc.cvtColor(testMat,grayMat,COLOR_RGB2GRAY);
+                Imgproc.threshold(grayMat,grayMat,100, 255,Imgproc.THRESH_OTSU);
+                mIvDone2.setImageBitmap(getBitmapFromMat(grayMat));
 //              获取垂直方向投影，用于分割字符
                 result = Util.Projection(resultMat, 1);
                 int[] resultV = result.get("V");
@@ -255,21 +258,22 @@ public class MainActivity extends Activity {
                 //canvas.drawBitmap(bitmap,0,0,paint);
                 for (int i = 0; i < width; i++) {
                     path.reset();
-                    path.moveTo(i, 0);
-                    path.lineTo(i, resultV[i]);
+                    path.moveTo(i,0);
+                    path.lineTo(i,resultV[i]);
                     canvas.drawPath(path, paint);
                 }
-                //mIvDone3.setImageBitmap(afterBitmap);
+                mIvDone.setImageBitmap(afterBitmap);
 
-                List<Mat> charMats = Util.cutV(resultMat, resultV, 10, 8);
+                List<Mat> charMats = Util.cutV(resultMat, resultV, 5, 8);
+                LogE("检测到的字符数目："+charMats.size());
                 mIv1.setImageBitmap(getBitmapFromMat(charMats.get(0)));
                 mIv2.setImageBitmap(getBitmapFromMat(charMats.get(1)));
                 mIv3.setImageBitmap(getBitmapFromMat(charMats.get(2)));
                 mIv4.setImageBitmap(getBitmapFromMat(charMats.get(3)));
-                mIv5.setImageBitmap(getBitmapFromMat(charMats.get(4)));
-                mIv6.setImageBitmap(getBitmapFromMat(charMats.get(5)));
-                /*mIv7.setImageBitmap(getBitmapFromMat(charMats.get(6)));
-                mIv8.setImageBitmap(getBitmapFromMat(charMats.get(7)));*/
+//                mIv5.setImageBitmap(getBitmapFromMat(charMats.get(4)));
+//                mIv6.setImageBitmap(getBitmapFromMat(charMats.get(5)));
+                //mIv7.setImageBitmap(getBitmapFromMat(charMats.get(6)));
+//                mIv8.setImageBitmap(getBitmapFromMat(charMats.get(7)));
                 break;
         }
     }
