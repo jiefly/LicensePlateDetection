@@ -4,6 +4,10 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
@@ -30,6 +34,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import butterknife.ButterKnife;
@@ -54,6 +59,22 @@ public class MainActivity extends Activity {
     private static final int GET_PICTURE = 0;
     @InjectView(R.id.btn4)
     Button mBtn4;
+    @InjectView(R.id.iv_1)
+    ImageView mIv1;
+    @InjectView(R.id.iv_2)
+    ImageView mIv2;
+    @InjectView(R.id.iv_3)
+    ImageView mIv3;
+    @InjectView(R.id.iv_4)
+    ImageView mIv4;
+    @InjectView(R.id.iv_5)
+    ImageView mIv5;
+    @InjectView(R.id.iv_6)
+    ImageView mIv6;
+    @InjectView(R.id.iv_7)
+    ImageView mIv7;
+    @InjectView(R.id.iv_8)
+    ImageView mIv8;
 
 
     private boolean isFirstResume = false;
@@ -78,10 +99,10 @@ public class MainActivity extends Activity {
     ImageView mIvDone;
     @InjectView(R.id.iv_done2)
     ImageView mIvDone2;
-    @InjectView(R.id.iv_done3)
+/*    @InjectView(R.id.iv_done3)
     ImageView mIvDone3;
     @InjectView(R.id.iv_done4)
-    ImageView mIvDone4;
+    ImageView mIvDone4;*/
     @InjectView(R.id.btnGetImg)
     Button mBtnGetImg;
     @InjectView(R.id.btn2)
@@ -139,7 +160,7 @@ public class MainActivity extends Activity {
         Imgproc.medianBlur(srcMat1, dstMat1, ksize);
     }
 
-    @OnClick({R.id.btnGetImg, R.id.btn2, R.id.btn3,R.id.btn4})
+    @OnClick({R.id.btnGetImg, R.id.btn2, R.id.btn3, R.id.btn4})
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.btnGetImg:
@@ -174,29 +195,84 @@ public class MainActivity extends Activity {
                 break;
             case R.id.btn4:
 //                图像垂直投影
-                Bitmap testBitmap = BitmapFactory.decodeResource(getResources(),R.drawable.test);
+                Bitmap testBitmap = BitmapFactory.decodeResource(getResources(),R.drawable.test4);
                 Mat testMat = new Mat();
-                Utils.bitmapToMat(testBitmap,testMat);
-                int[] result = Util.VerticalProjection(testMat);
-                StringBuilder stringBuilder = new StringBuilder();
-                for (int i=0;i<result.length;i++){
-                   stringBuilder.append(result[i]).append(",");
-                }
-                LogE(stringBuilder.toString());
-                /*List<double[]> value =
-                int count =0;
-                for (double[] d:value){
-                    count++;
-                    LogE("第"+count+"个数据：");
-                    for (double dd:d){
-                        LogE(dd+"");
-                    }
-                }*/
+                //Bitmap bitmap = testBitmap.copy(Bitmap.Config.RGB_565,true);
+                Utils.bitmapToMat(testBitmap, testMat);
 
+//              先获取水平方向投影，用来切除上下多余的部分
+                Map<String, int[]> result = Util.Projection(testMat, 0);
+
+                //mIvDone4.setImageBitmap(getBitmapFromMat(testMat));
+//                StringBuilder stringBuilder = new StringBuilder();
+
+                int[] resultH = result.get("H");
+               /* for (int i=0;i<resultV.length;i++){
+                   stringBuilder.append(resultV[i]).append(",");
+                }*/
+//                将水平和垂直方向的投影在Bitmap上显示出来
+                /*LogE(stringBuilder.toString());
+                LogE(resultV.length+"<=====>"+resultH.length);
+                Canvas canvas = new Canvas(bitmap);
+                Paint paint = new Paint();
+                paint.setColor(Color.RED);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(1);
+                int width = resultV.length;
+                int height = resultH.length;
+                Path path = new Path();
+                //canvas.drawBitmap(bitmap,0,0,paint);
+                for (int i =0;i<width;i++){
+                    path.reset();
+                    path.moveTo(i,0);
+                    path.lineTo(i,resultV[i]);
+                    canvas.drawPath(path,paint);
+                }*/
+             /*   for (int i =0;i<height;i++){
+                    path.reset();
+                    path.moveTo(0,i);
+                    path.lineTo(resultH[i],i);
+                    canvas.drawPath(path,paint);
+                }
+                mIvDone.setImageBitmap(bitmap);
+                */
+//                这是切割好上下边之后的mat
+                Mat resultMat = Util.cutH(testMat, resultH, testMat.rows() / 6);
+                Bitmap afterBitmap = getBitmapFromMat(resultMat);
+                //mIvDone2.setImageBitmap(afterBitmap);
+//              获取垂直方向投影，用于分割字符
+                result = Util.Projection(resultMat, 1);
+                int[] resultV = result.get("V");
+                LogE(resultV.length + "");
+                Canvas canvas = new Canvas(afterBitmap);
+                Paint paint = new Paint();
+                paint.setColor(Color.RED);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(1);
+                int width = resultV.length;
+                int height = resultH.length;
+                Path path = new Path();
+                //canvas.drawBitmap(bitmap,0,0,paint);
+                for (int i = 0; i < width; i++) {
+                    path.reset();
+                    path.moveTo(i, 0);
+                    path.lineTo(i, resultV[i]);
+                    canvas.drawPath(path, paint);
+                }
+                //mIvDone3.setImageBitmap(afterBitmap);
+
+                List<Mat> charMats = Util.cutV(resultMat, resultV, 10, 8);
+                mIv1.setImageBitmap(getBitmapFromMat(charMats.get(0)));
+                mIv2.setImageBitmap(getBitmapFromMat(charMats.get(1)));
+                mIv3.setImageBitmap(getBitmapFromMat(charMats.get(2)));
+                mIv4.setImageBitmap(getBitmapFromMat(charMats.get(3)));
+                mIv5.setImageBitmap(getBitmapFromMat(charMats.get(4)));
+                mIv6.setImageBitmap(getBitmapFromMat(charMats.get(5)));
+                /*mIv7.setImageBitmap(getBitmapFromMat(charMats.get(6)));
+                mIv8.setImageBitmap(getBitmapFromMat(charMats.get(7)));*/
                 break;
         }
     }
-
 
 
     private void detechColor(String fileName) {
@@ -257,7 +333,7 @@ public class MainActivity extends Activity {
 
         Bitmap binaryBitmap = Bitmap.createBitmap(srcBitmap.getWidth(), srcBitmap.getHeight(), Bitmap.Config.RGB_565);
         Utils.matToBitmap(dstCon, binaryBitmap);
-        mIvDone4.setImageBitmap(binaryBitmap);
+       // mIvDone4.setImageBitmap(binaryBitmap);
         Mat dilatMat = dilateAndErode(dstCon, 3, -1, 2);
         Mat exMat = new Mat();
         Mat kernel = getStructuringElement(Imgproc.MORPH_RECT, new Size(7, 7));
@@ -288,7 +364,7 @@ public class MainActivity extends Activity {
         MatOfPoint maxContours = Util.getMaxMatOfPoint(newMatList);
         saveResult(maxContours, fileName);
         Utils.matToBitmap(srcMat, dstBitmap);
-        mIvDone3.setImageBitmap(dstBitmap);
+       // mIvDone3.setImageBitmap(dstBitmap);
     }
 
     private void advanceFilter(List<MatOfPoint> newMatList, String fileName) {
@@ -381,6 +457,12 @@ public class MainActivity extends Activity {
             }
         }
 
+    }
+
+    private Bitmap getBitmapFromMat(Mat mat) {
+        Bitmap bitmap = Bitmap.createBitmap(mat.width(), mat.height(), Bitmap.Config.RGB_565);
+        Utils.matToBitmap(mat, bitmap);
+        return bitmap;
     }
 
     @Override
