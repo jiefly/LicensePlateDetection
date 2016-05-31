@@ -125,17 +125,16 @@ public class Util {
 
         int startX = 0;
         int endX = 0;
-        for (int i = 0; i < len - 5; i++) {
+        for (int i = 0; i < len; i++) {
             if (startX == 0) {
                 if (resultV[i] < minValue) {
-                    if (resultV[i + 1] > minValue
-                            && resultV[i + 2] > minValue
-                            && resultV[i + 3] > minValue
-                            && resultV[i + 4] > minValue)
-                    {
-                        startX = i;
+                    if (count == 8) {
+                        if (afterValueIsVaild(resultV,i,len/20,minValue,1))
+                            startX = i;
+                    }else {
+                        if (afterValueIsVaild(resultV,i,len/100,minValue,1))
+                            startX = i;
                     }
-
                 }
             } else {
                 if (resultV[i] < minValue) {
@@ -151,6 +150,40 @@ public class Util {
             }
         }
         return results;
+    }
+
+    /*
+    * 用来检测当前坐标之后的一些值是否也符合要求
+    * 参数values:待检测的数组
+    * 参数currentPosition：检测的起始点
+    * 参数num：需要检测起始点之后的多少位数字
+    * 参数minValue：检测的阈值
+    * 参数type：判断是否有效的方法类型（type为1代表大于等于为有效，type为0代表小于等于为有效）
+    * */
+    public static boolean afterValueIsVaild(int[] values, int currentPosition, int num, int minValue, int type) {
+        if (values.length - currentPosition<num){
+            Log.e("afterValueIsVaild","数组长度小于num+currentPosition，可能发生数组越界");
+            return false;
+        }
+
+        if (type == 0) {
+            for (int i = currentPosition; i < currentPosition + num; i++) {
+                if (values[i + 1] > minValue) {
+                    return false;
+                }
+            }
+            return true;
+        } else if (type == 1) {
+            for (int i = currentPosition; i < currentPosition + num; i++) {
+                if (values[i + 1] < minValue) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            Log.e("afterValueIsVaild", "请输入正确的比较类型，为1代表大于等于为有效，为0代表小于等于为有效");
+        }
+        return false;
     }
 
     /*
@@ -173,10 +206,28 @@ public class Util {
             }
         }
 //        在后三分之一中找出后半部分分割点
+//        下半部分也需要验证分割点的正确性
         for (int i = (2 * len) / 3; i < len; i++) {
             if (resultH[i] < minValue / 2 && i > top) {
-                bottom = i;
-                break;
+
+//                如果下部分割点再总长度的六分之五以前则需要进一步验证这个分割点的正确性
+                if (i < 5 * len / 6) {
+//                    验证之后的十个点是否也都小于阈值，都小于阈值才被判断为正确的分割点
+                    boolean isTrue = true;
+                    for (int j = i; j < i + 10; j++) {
+                        if (resultH[j] > minValue) {
+                            isTrue = false;
+                            break;
+                        }
+                    }
+                    if (isTrue) {
+                        bottom = i;
+                        break;
+                    }
+                } else {
+                    bottom = i;
+                    break;
+                }
             }
         }
         Point start = new Point(0, top);

@@ -196,7 +196,7 @@ public class MainActivity extends Activity {
                 break;
             case R.id.btn4:
 //                图像垂直投影
-                Bitmap testBitmap = BitmapFactory.decodeResource(getResources(),R.drawable.test4);
+                Bitmap testBitmap = BitmapFactory.decodeResource(getResources(),R.drawable.test8);
                 Mat testMat = new Mat();
                 //Bitmap bitmap = testBitmap.copy(Bitmap.Config.RGB_565,true);
                 Utils.bitmapToMat(testBitmap, testMat);
@@ -264,16 +264,16 @@ public class MainActivity extends Activity {
                 }
                 mIvDone.setImageBitmap(afterBitmap);
 
-                List<Mat> charMats = Util.cutV(resultMat, resultV, 5, 8);
+                List<Mat> charMats = Util.cutV(resultMat, resultV, height/20, 8);
                 LogE("检测到的字符数目："+charMats.size());
                 mIv1.setImageBitmap(getBitmapFromMat(charMats.get(0)));
-                mIv2.setImageBitmap(getBitmapFromMat(charMats.get(1)));
+               /* mIv2.setImageBitmap(getBitmapFromMat(charMats.get(1)));
                 mIv3.setImageBitmap(getBitmapFromMat(charMats.get(2)));
                 mIv4.setImageBitmap(getBitmapFromMat(charMats.get(3)));
-//                mIv5.setImageBitmap(getBitmapFromMat(charMats.get(4)));
-//                mIv6.setImageBitmap(getBitmapFromMat(charMats.get(5)));
-                //mIv7.setImageBitmap(getBitmapFromMat(charMats.get(6)));
-//                mIv8.setImageBitmap(getBitmapFromMat(charMats.get(7)));
+                mIv5.setImageBitmap(getBitmapFromMat(charMats.get(4)));
+                mIv6.setImageBitmap(getBitmapFromMat(charMats.get(5)));
+                mIv7.setImageBitmap(getBitmapFromMat(charMats.get(6)));
+                mIv8.setImageBitmap(getBitmapFromMat(charMats.get(7)));*/
                 break;
         }
     }
