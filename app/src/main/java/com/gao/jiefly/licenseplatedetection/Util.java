@@ -13,7 +13,6 @@ import org.opencv.core.Rect;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -45,8 +44,6 @@ public class Util {
             out.flush();
             out.close();
             Log.i("jiefly", "已经保存");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -127,7 +124,7 @@ public class Util {
         int endX = 0;
         for (int i = 0; i < len; i++) {
             if (startX == 0) {
-                if (resultV[i] < minValue) {
+                if (resultV[i] > minValue) {
                     if (count == 8) {
                         if (afterValueIsVaild(resultV,i,len/20,minValue,1))
                             startX = i;
@@ -141,11 +138,12 @@ public class Util {
                     endX = i;
                     count--;
                     results.add(getRoiMat(mat, startX, endX));
-
                     if (count <= 0)
                         return results;
                     startX = 0;
                     endX = 0;
+//                    为了防止两个字符之间只间隔一个像素，而发生的后面一个字符的漏检
+                    i-=1;
                 }
             }
         }
@@ -174,7 +172,7 @@ public class Util {
             }
             return true;
         } else if (type == 1) {
-            for (int i = currentPosition; i < currentPosition + num; i++) {
+            for (int i = currentPosition; i < currentPosition + num-1; i++) {
                 if (values[i + 1] < minValue) {
                     return false;
                 }
@@ -197,10 +195,23 @@ public class Util {
         int len = resultH.length;
         int top = 0;
         int bottom = 0;
+        int minBefore = 1000;
+        int minAfter = 1000;
+//        求前三分之一中的最小值，以此作为top检测的阈值的基值
+        for (int i = 0; i<len/3;i++){
+            if (resultH[i]<minBefore)
+                minBefore = resultH[i];
+        }
+
+//        求后三分之二中的最小值，以此作为bottom检测的阈值的基值
+        for (int i = 2*len/3; i<len;i++){
+            if (resultH[i]<minAfter)
+                minAfter = resultH[i];
+        }
 //        在前三分之一中找出上半部分分割点
         for (int i = 0; i < len / 3; i++) {
-            if (resultH[i] < minValue) {
-                if (checkAfterPointIsRight(resultH, minValue, i)) {
+            if (resultH[i] < minValue+minBefore) {
+                if (checkAfterPointIsRight(resultH, minValue+minBefore, i)) {
                     top = i;
                 }
             }
@@ -208,14 +219,14 @@ public class Util {
 //        在后三分之一中找出后半部分分割点
 //        下半部分也需要验证分割点的正确性
         for (int i = (2 * len) / 3; i < len; i++) {
-            if (resultH[i] < minValue / 2 && i > top) {
+            if (resultH[i] < minValue +minAfter && i > top) {
 
 //                如果下部分割点再总长度的六分之五以前则需要进一步验证这个分割点的正确性
-                if (i < 5 * len / 6) {
+                if (i < 9 * len / 10) {
 //                    验证之后的十个点是否也都小于阈值，都小于阈值才被判断为正确的分割点
                     boolean isTrue = true;
-                    for (int j = i; j < i + 10; j++) {
-                        if (resultH[j] > minValue) {
+                    for (int j = i; j < i + 2; j++) {
+                        if (resultH[j] > minAfter) {
                             isTrue = false;
                             break;
                         }

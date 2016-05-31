@@ -100,10 +100,10 @@ public class MainActivity extends Activity {
     ImageView mIvDone;
     @InjectView(R.id.iv_done2)
     ImageView mIvDone2;
-/*    @InjectView(R.id.iv_done3)
-    ImageView mIvDone3;
-    @InjectView(R.id.iv_done4)
-    ImageView mIvDone4;*/
+    /*    @InjectView(R.id.iv_done3)
+        ImageView mIvDone3;
+        @InjectView(R.id.iv_done4)
+        ImageView mIvDone4;*/
     @InjectView(R.id.btnGetImg)
     Button mBtnGetImg;
     @InjectView(R.id.btn2)
@@ -196,7 +196,7 @@ public class MainActivity extends Activity {
                 break;
             case R.id.btn4:
 //                图像垂直投影
-                Bitmap testBitmap = BitmapFactory.decodeResource(getResources(),R.drawable.test8);
+                Bitmap testBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.newtest);
                 Mat testMat = new Mat();
                 //Bitmap bitmap = testBitmap.copy(Bitmap.Config.RGB_565,true);
                 Utils.bitmapToMat(testBitmap, testMat);
@@ -205,76 +205,97 @@ public class MainActivity extends Activity {
                 Map<String, int[]> result = Util.Projection(testMat, 0);
 
                 //mIvDone4.setImageBitmap(getBitmapFromMat(testMat));
-//                StringBuilder stringBuilder = new StringBuilder();
+//                StringBuilder stringBuilder = newtest StringBuilder();
 
                 int[] resultH = result.get("H");
                /* for (int i=0;i<resultV.length;i++){
                    stringBuilder.append(resultV[i]).append(",");
                 }*/
 //                将水平和垂直方向的投影在Bitmap上显示出来
-                /*LogE(stringBuilder.toString());
-                LogE(resultV.length+"<=====>"+resultH.length);
-                Canvas canvas = new Canvas(bitmap);
+//                LogE(stringBuilder.toString());
+//                LogE(resultV.length+"<=====>"+resultH.length);
+                Bitmap bitmapH = getBitmapFromMat(testMat);
+                Canvas canvas = new Canvas(bitmapH);
                 Paint paint = new Paint();
                 paint.setColor(Color.RED);
                 paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeWidth(1);
-                int width = resultV.length;
+//                int width = resultV.length;
                 int height = resultH.length;
                 Path path = new Path();
                 //canvas.drawBitmap(bitmap,0,0,paint);
-                for (int i =0;i<width;i++){
+                /*for (int i =0;i<width;i++){
                     path.reset();
                     path.moveTo(i,0);
                     path.lineTo(i,resultV[i]);
                     canvas.drawPath(path,paint);
                 }*/
-             /*   for (int i =0;i<height;i++){
+                for (int i =0;i<height;i++){
                     path.reset();
                     path.moveTo(0,i);
                     path.lineTo(resultH[i],i);
                     canvas.drawPath(path,paint);
                 }
-                mIvDone.setImageBitmap(bitmap);
-                */
+                mIvSrc.setImageBitmap(bitmapH);
+                int minH = 1000;
+                for (int x:resultH){
+                    if (x<minH){
+                        minH = x;
+                    }
+                }
+                LogE("minH:"+minH);
 //                这是切割好上下边之后的mat
-                Mat resultMat = Util.cutH(testMat, resultH,100);
+                Mat resultMat = Util.cutH(testMat, resultH, testMat.cols()/5);
                 Bitmap afterBitmap = getBitmapFromMat(resultMat);
-                Imgproc.cvtColor(testMat,grayMat,COLOR_RGB2GRAY);
-                Imgproc.threshold(grayMat,grayMat,100, 255,Imgproc.THRESH_OTSU);
+                Imgproc.cvtColor(testMat, grayMat, COLOR_RGB2GRAY);
+                Imgproc.threshold(grayMat, grayMat, 100, 255, Imgproc.THRESH_OTSU);
                 mIvDone2.setImageBitmap(getBitmapFromMat(grayMat));
 //              获取垂直方向投影，用于分割字符
                 result = Util.Projection(resultMat, 1);
                 int[] resultV = result.get("V");
+                int minV = 1000;
+                for (int x:resultV){
+                    if (x<minV)
+                        minV = x;
+                }
                 LogE(resultV.length + "");
-                Canvas canvas = new Canvas(afterBitmap);
-                Paint paint = new Paint();
-                paint.setColor(Color.RED);
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(1);
+                Canvas canvasH = new Canvas(afterBitmap);
+                Paint paintH = new Paint();
+                paintH.setColor(Color.RED);
+                paintH.setStyle(Paint.Style.STROKE);
+                paintH.setStrokeWidth(1);
                 int width = resultV.length;
-                int height = resultH.length;
-                Path path = new Path();
+                int heightH = resultH.length;
+                Path pathH = new Path();
                 //canvas.drawBitmap(bitmap,0,0,paint);
                 for (int i = 0; i < width; i++) {
-                    path.reset();
-                    path.moveTo(i,0);
-                    path.lineTo(i,resultV[i]);
-                    canvas.drawPath(path, paint);
+                    pathH.reset();
+                    pathH.moveTo(i, 0);
+                    pathH.lineTo(i, resultV[i]);
+                    canvasH.drawPath(pathH, paintH);
                 }
                 mIvDone.setImageBitmap(afterBitmap);
-
-                List<Mat> charMats = Util.cutV(resultMat, resultV, height/20, 8);
-                LogE("检测到的字符数目："+charMats.size());
-                mIv1.setImageBitmap(getBitmapFromMat(charMats.get(0)));
-               /* mIv2.setImageBitmap(getBitmapFromMat(charMats.get(1)));
-                mIv3.setImageBitmap(getBitmapFromMat(charMats.get(2)));
-                mIv4.setImageBitmap(getBitmapFromMat(charMats.get(3)));
-                mIv5.setImageBitmap(getBitmapFromMat(charMats.get(4)));
-                mIv6.setImageBitmap(getBitmapFromMat(charMats.get(5)));
-                mIv7.setImageBitmap(getBitmapFromMat(charMats.get(6)));
-                mIv8.setImageBitmap(getBitmapFromMat(charMats.get(7)));*/
-                break;
+                LogE("minV:"+minV);
+                List<Mat> charMats = Util.cutV(resultMat, resultV, minV+height / 100+1, 8);
+                LogE("检测到的字符数目：" + charMats.size());
+                switch (charMats.size()) {
+                    case 8:
+                        mIv8.setImageBitmap(getBitmapFromMat(charMats.get(7)));
+                    case 7:
+                        mIv7.setImageBitmap(getBitmapFromMat(charMats.get(6)));
+                    case 6:
+                        mIv6.setImageBitmap(getBitmapFromMat(charMats.get(5)));
+                    case 5:
+                        mIv5.setImageBitmap(getBitmapFromMat(charMats.get(4)));
+                    case 4:
+                        mIv4.setImageBitmap(getBitmapFromMat(charMats.get(3)));
+                    case 3:
+                        mIv3.setImageBitmap(getBitmapFromMat(charMats.get(2)));
+                    case 2:
+                        mIv2.setImageBitmap(getBitmapFromMat(charMats.get(1)));
+                    case 1:
+                        mIv1.setImageBitmap(getBitmapFromMat(charMats.get(0)));
+                }
         }
     }
 
@@ -305,7 +326,7 @@ public class MainActivity extends Activity {
 //            y = rect.y;
 //            w = rect.width;
 //            h = rect.height;
-            //Imgproc.rectangle(srcMat, new Point(x, y), new Point(x + w, y + h), new Scalar(0, 255, 0), 2);
+            //Imgproc.rectangle(srcMat, newtest Point(x, y), newtest Point(x + w, y + h), newtest Scalar(0, 255, 0), 2);
             saveMat = new Mat(rect.size(), CvType.CV_8UC1);
             Mat m = new Mat(srcMat, rect);
             Core.copyMakeBorder(m, saveMat, 0, 0, 0, 0, Core.BORDER_DEFAULT);
@@ -337,7 +358,7 @@ public class MainActivity extends Activity {
 
         Bitmap binaryBitmap = Bitmap.createBitmap(srcBitmap.getWidth(), srcBitmap.getHeight(), Bitmap.Config.RGB_565);
         Utils.matToBitmap(dstCon, binaryBitmap);
-       // mIvDone4.setImageBitmap(binaryBitmap);
+        // mIvDone4.setImageBitmap(binaryBitmap);
         Mat dilatMat = dilateAndErode(dstCon, 3, -1, 2);
         Mat exMat = new Mat();
         Mat kernel = getStructuringElement(Imgproc.MORPH_RECT, new Size(7, 7));
@@ -360,7 +381,7 @@ public class MainActivity extends Activity {
             advanceFilter(newMatList, fileName);
         }
         for (int i = 0; i < newMatList.size(); i++) {
-            //drawContours(srcMat,newMatList,i,new Scalar(255,0,0),2);
+            //drawContours(srcMat,newMatList,i,newtest Scalar(255,0,0),2);
         }*/
         //对车牌进行精定位
 
@@ -368,7 +389,7 @@ public class MainActivity extends Activity {
         MatOfPoint maxContours = Util.getMaxMatOfPoint(newMatList);
         saveResult(maxContours, fileName);
         Utils.matToBitmap(srcMat, dstBitmap);
-       // mIvDone3.setImageBitmap(dstBitmap);
+        // mIvDone3.setImageBitmap(dstBitmap);
     }
 
     private void advanceFilter(List<MatOfPoint> newMatList, String fileName) {
