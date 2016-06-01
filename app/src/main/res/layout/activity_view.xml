@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:orientation="vertical">
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="0dp"
+		android:layout_weight="1"
+		android:orientation="horizontal">
+		<ImageView android:layout_width="0dp"
+		           android:layout_height="match_parent" android:layout_weight="1"
+		           android:id="@+id/ivSrc"/>
+		<ImageView android:layout_width="0dp"
+		           android:layout_height="match_parent" android:layout_weight="1"
+		           android:id="@+id/ivSobel"/>
+	</LinearLayout>
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="0dp"
+		android:layout_weight="1"
+		android:orientation="horizontal">
+		<ImageView android:layout_width="0dp"
+		           android:layout_height="match_parent" android:layout_weight="1"
+		           android:id="@+id/ivMorphologyEx"/>
+		<ImageView android:layout_width="0dp"
+		           android:layout_height="match_parent" android:layout_weight="1"
+		           android:id="@+id/ivResult"/>
+	</LinearLayout>
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="0dp"
+		android:layout_weight="1"
+		android:orientation="horizontal">
+		<ImageView android:id="@+id/iv_1" android:layout_width="0dp"
+		           android:layout_height="match_parent" android:layout_weight="1"/>
+		<ImageView android:id="@+id/iv_2" android:layout_width="0dp"
+		           android:layout_height="match_parent" android:layout_weight="1"/>
+		<ImageView android:id="@+id/iv_3" android:layout_width="0dp"
+		           android:layout_height="match_parent" android:layout_weight="1"/>
+		<ImageView android:id="@+id/iv_4" android:layout_width="0dp"
+		           android:layout_height="match_parent" android:layout_weight="1"/>
+		<ImageView android:id="@+id/iv_5" android:layout_width="0dp"
+		           android:layout_height="match_parent" android:layout_weight="1"/>
+		<ImageView android:id="@+id/iv_6" android:layout_width="0dp"
+		           android:layout_height="match_parent" android:layout_weight="1"/>
+		<ImageView android:id="@+id/iv_7" android:layout_width="0dp"
+		           android:layout_height="match_parent" android:layout_weight="1"/>
+		<ImageView android:id="@+id/iv_8" android:layout_width="0dp"
+		           android:layout_height="match_parent" android:layout_weight="1"/>
+
+
+</LinearLayout>
+	<RelativeLayout android:layout_width="match_parent" android:layout_height="50dp">
+		<Button android:layout_width="wrap_content" android:layout_height="match_parent"
+		        android:text="车牌定位" android:id="@+id/btnLocate"/>
+
+		<Button android:layout_width="wrap_content" android:layout_height="match_parent"
+		        android:layout_alignParentTop="true" android:layout_alignParentRight="true"
+		        android:layout_alignParentEnd="true" android:text="车牌识别"
+		        android:id="@+id/btnSegmentation"/>
+		<Button
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="获取图片"
+			android:id="@+id/btnGetPic"
+			android:layout_alignParentBottom="true" android:layout_toRightOf="@+id/btnLocate"
+			android:layout_toEndOf="@+id/btnLocate" android:layout_marginLeft="30dp"
+			android:layout_marginStart="30dp"/>
+		<Button
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="获取车牌"
+			android:id="@+id/btnGetLicensePlate"
+			android:layout_alignParentBottom="true" android:layout_toRightOf="@+id/btnGetPic"
+			android:layout_toEndOf="@+id/btnGetPic"/>
+	</RelativeLayout>
+
+
+</LinearLayout>
