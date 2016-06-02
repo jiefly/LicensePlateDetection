@@ -19,6 +19,8 @@ public class MatOfPoint2f extends Mat {
         //FIXME: do we need release() here?
     }
 
+
+
     public static MatOfPoint2f fromNativeAddr(long addr) {
         return new MatOfPoint2f(addr);
     }

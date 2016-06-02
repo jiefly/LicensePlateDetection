@@ -63,22 +63,39 @@ public class Presenter {
     public void showLocateResult() {
         LocateLicensePlate(mCarPictureBean);
         Bitmap srcBitmap = mCarPictureBean.getPicBitmap();
+        Bitmap guassBitmap = Bitmap.createBitmap(srcBitmap.getWidth(),srcBitmap.getHeight(), Bitmap.Config.RGB_565);
+        Bitmap grayBitmap = Bitmap.createBitmap(srcBitmap.getWidth(),srcBitmap.getHeight(), Bitmap.Config.RGB_565);
         Bitmap sobelBitmap = Bitmap.createBitmap(srcBitmap.getWidth(), srcBitmap.getHeight(), Bitmap.Config.RGB_565);
-        Bitmap ExBitmap = Bitmap.createBitmap(srcBitmap.getWidth(), srcBitmap.getHeight(), Bitmap.Config.RGB_565);
         Bitmap binBitmap = Bitmap.createBitmap(srcBitmap.getWidth(), srcBitmap.getHeight(), Bitmap.Config.RGB_565);
+        Bitmap ExBitmap = Bitmap.createBitmap(srcBitmap.getWidth(), srcBitmap.getHeight(), Bitmap.Config.RGB_565);
+        Bitmap resultBitmap = Bitmap.createBitmap(srcBitmap.getWidth(),srcBitmap.getHeight(), Bitmap.Config.RGB_565);
         Utils.matToBitmap(mLicensePlateModel.getSobelMat(), sobelBitmap);
         Utils.matToBitmap(mLicensePlateModel.getMorphologyExMat(), ExBitmap);
         Utils.matToBitmap(mLicensePlateModel.getBinMat(), binBitmap);
+        Utils.matToBitmap(mLicensePlateModel.getGuassMat(),guassBitmap);
+        Utils.matToBitmap(mLicensePlateModel.getGrayMat(),grayBitmap);
+        Utils.matToBitmap(mLicensePlateModel.getResultMat(),resultBitmap);
+        /*Bitmap testBitmap = Bitmap.createBitmap(mLicensePlateModel.getSrcMat().width(),mLicensePlateModel.getSrcMat().height(), Bitmap.Config.RGB_565);
+        Utils.matToBitmap(mLicensePlateModel.getSrcMat(),testBitmap);
+        srcBitmap = testBitmap*/;
 
         List<Bitmap> bitmapList = new ArrayList<>();
         bitmapList.add(srcBitmap);
+        bitmapList.add(guassBitmap);
+        bitmapList.add(grayBitmap);
         bitmapList.add(sobelBitmap);
         bitmapList.add(binBitmap);
         bitmapList.add(ExBitmap);
+        bitmapList.add(resultBitmap);
+
         if (LocateLicensePlate(mCarPictureBean).size() > 0)
             mLicensePlateBean = LocateLicensePlate(mCarPictureBean).get(0);
+        for (LicensePlateBean licensePlateBean:LocateLicensePlate(mCarPictureBean)){
+            if (mLicensePlateBean.getSrcMat().width()<licensePlateBean.getSrcMat().width()){
+                mLicensePlateBean = licensePlateBean;
+            }
+        }
         mIView.showLicensePlate(bitmapList);
-
     }
 
     /*

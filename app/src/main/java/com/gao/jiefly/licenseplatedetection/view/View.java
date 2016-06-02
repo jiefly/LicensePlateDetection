@@ -34,6 +34,12 @@ public class View extends Activity implements IView {
     ImageView mIvMorphologyEx;
     @InjectView(R.id.ivResult)
     ImageView mIvResult;
+    @InjectView(R.id.ivGuass)
+    ImageView mIvGuass;
+    @InjectView(R.id.ivGray)
+    ImageView mIvGray;
+    @InjectView(R.id.ivBin)
+    ImageView mIvBin;
     @InjectView(R.id.iv_1)
     ImageView mIv1;
     @InjectView(R.id.iv_2)
@@ -59,6 +65,7 @@ public class View extends Activity implements IView {
     @InjectView(R.id.btnGetLicensePlate)
     Button mBtnGetLicensePlate;
 
+
     private Presenter mPresenter;
 
     private boolean isFirstResume = false;
@@ -71,10 +78,10 @@ public class View extends Activity implements IView {
             // super.onManagerConnected(status);
             switch (status) {
                 case BaseLoaderCallback.SUCCESS:
-                    Log.i(TAG,"opencv load success");
+                    Log.i(TAG, "opencv load success");
                     break;
                 case BaseLoaderCallback.INIT_FAILED:
-                    Log.e(TAG,"opencv init failed!!!");
+                    Log.e(TAG, "opencv init failed!!!");
                     break;
             }
         }
@@ -95,10 +102,20 @@ public class View extends Activity implements IView {
 
     @Override
     public void showLicensePlate(List<Bitmap> bitmaps) {
+//        原图
         mIvSrc.setImageBitmap(bitmaps.get(0));
-        mIvSobel.setImageBitmap(bitmaps.get(1));
-        mIvResult.setImageBitmap(bitmaps.get(2));
-        mIvMorphologyEx.setImageBitmap(bitmaps.get(3));
+//        高斯滤波
+        mIvGuass.setImageBitmap(bitmaps.get(1));
+//        灰度化
+        mIvGray.setImageBitmap(bitmaps.get(2));
+//        sobel边缘提取
+        mIvSobel.setImageBitmap(bitmaps.get(3));
+//        二值化
+        mIvBin.setImageBitmap(bitmaps.get(4));
+//        闭操作
+        mIvMorphologyEx.setImageBitmap(bitmaps.get(5));
+//        检测结果
+        mIvResult.setImageBitmap(bitmaps.get(6));
     }
 
     @Override
@@ -123,7 +140,7 @@ public class View extends Activity implements IView {
         }
     }
 
-    @OnClick({R.id.btnLocate, R.id.btnSegmentation, R.id.btnGetPic,R.id.btnGetLicensePlate})
+    @OnClick({R.id.btnLocate, R.id.btnSegmentation, R.id.btnGetPic, R.id.btnGetLicensePlate})
     public void onClick(android.view.View view) {
         switch (view.getId()) {
             case R.id.btnLocate:
@@ -144,8 +161,8 @@ public class View extends Activity implements IView {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK){
-            switch (requestCode){
+        if (resultCode == RESULT_OK) {
+            switch (requestCode) {
                 case GET_CAR_PIC:
                     try {
                         mPresenter.setCarPicture(BitmapFactory.decodeStream(getContentResolver().openInputStream(data.getData())));
@@ -163,6 +180,7 @@ public class View extends Activity implements IView {
             }
         }
     }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -170,6 +188,6 @@ public class View extends Activity implements IView {
             OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_1_0, getApplicationContext(), mBaseLoaderCallback);
         }
         isFirstResume = true;
-        Log.i(TAG,"onResume sucess load OpenCV...");
+        Log.i(TAG, "onResume sucess load OpenCV...");
     }
 }

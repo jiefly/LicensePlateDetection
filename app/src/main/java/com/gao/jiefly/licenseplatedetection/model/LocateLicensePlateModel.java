@@ -8,6 +8,7 @@ import com.gao.jiefly.licenseplatedetection.bean.LicensePlateBean;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.opencv.imgproc.Imgproc.CHAIN_APPROX_NONE;
+import static org.opencv.imgproc.Imgproc.COLOR_RGB2HSV;
 import static org.opencv.imgproc.Imgproc.CV_SHAPE_RECT;
 import static org.opencv.imgproc.Imgproc.dilate;
 import static org.opencv.imgproc.Imgproc.erode;
@@ -95,6 +97,18 @@ public class LocateLicensePlateModel implements ILocateLicensePlateModel {
     Mat grayMat = new Mat();
     Mat sobelMat = new Mat();
     Mat binMat = new Mat();
+
+    public Mat getResultMat() {
+        return resultMat;
+    }
+
+    Mat resultMat = new Mat();
+
+    public Mat getGuassMat() {
+        return guassMat;
+    }
+
+    Mat guassMat = new Mat();
     Mat morphologyExMat = new Mat();
     List<MatOfPoint> contours = new ArrayList<>();
 
@@ -121,33 +135,75 @@ public class LocateLicensePlateModel implements ILocateLicensePlateModel {
         anchor = carPicture.getAnchor();
     }
 
-
+    /*
+    * 通过颜色定位车牌
+    * */
     @Override
     public List<LicensePlateBean> locateLicensePlateByColor(CarPictureBean carPictureBean) {
-        return null;
+        if (picBitmap == null) {
+            Log.e(TAG, "Picture bitmap can not be null!!!");
+            return null;
+        }
+        Utils.bitmapToMat(carPictureBean.getPicBitmap(),srcMat);
+
+//        将含有车牌的照片从rgb色域转为hsv色域
+        Mat hsvMat = new Mat(srcMat.width(),srcMat.height(), CvType.CV_8UC3);
+        ChangeToHSV(srcMat,hsvMat);
+//        检测照片中的蓝色色域的区域
+        Mat mat = findColor(hsvMat);
+//        从蓝色色域的区域检测出外接矩为矩形的区域，将至作为初步的车牌候选区
+        findLicensePlates(contours,mat);
+//        从这些候选区当中过滤掉宽高比不符，以及size过于小的区域
+        contours = filterLicensePlates(contours);
+        return getLicensePlateFormContours(contours);
     }
 
+    /*
+    * 找出hsvMat中的蓝色区域，并将其他区域设为0
+    * */
+    private Mat findColor(Mat hsvMat) {
+        Scalar lowerThreshold = new Scalar(75, 90, 90);
+        Scalar upperThreshold = new Scalar(140, 255, 255);
+        Mat dstMat = new Mat();
+        Core.inRange(hsvMat, lowerThreshold, upperThreshold, dstMat);
+        return dstMat;
+    }
+    /*
+    * 将rgb色域转换为hsv色域
+    * */
+    private void ChangeToHSV(Mat srcMat,Mat hsvMat) {
+        Imgproc.cvtColor(srcMat, hsvMat, COLOR_RGB2HSV);
+    }
+
+    /*
+    * 通过车牌的形态特征定位车牌
+    * */
     @Override
     public List<LicensePlateBean> locateLicensePlateByShape(CarPictureBean carPictureBean) {
         if (picBitmap == null) {
             Log.e(TAG, "Picture bitmap can not be null!!!");
             return null;
         }
-        grayMat = ChangeToGray(picBitmap);
-        sobelMat = sobelDeal(grayMat);
-        binMat = binDeal(sobelMat);
-        morphologyExMat = morphologyExDeal(binMat);
-        findLicensePlates(contours);
+        guassMat = Guass(picBitmap);
+        resultMat = srcMat.clone();
+        grayMat = ChangeToGray(srcMat);
+        sobelDeal(grayMat);
+        binDeal(sobelMat);
+        morphologyExDeal(binMat);
+//        morphologyExMat = dilateAndErode(binMat,10,1,1);
+        findLicensePlates(contours,morphologyExMat);
+
         contours = filterLicensePlates(contours);
+//        srcMat = doAffineTransform(srcMat);
         return getLicensePlateFormContours(contours);
     }
 
     private List<LicensePlateBean> getLicensePlateFormContours(List<MatOfPoint> contours) {
         for (MatOfPoint matOfPoint : contours) {
             Rect rect = Imgproc.boundingRect(matOfPoint);
-
+            Log.e(TAG,rect.width+"---->"+rect.height+"原始图片大小："+srcMat.cols()+"----->"+srcMat.rows());
             Mat result = new Mat(srcMat, rect);
-            Log.i(TAG,result.size()+"");
+            Log.i(TAG, result.size() + "");
             results.add(new LicensePlateBean(result));
         }
         return results;
@@ -167,38 +223,43 @@ public class LocateLicensePlateModel implements ILocateLicensePlateModel {
 
                 float r = (float) rotatedRect.size.width / (float) rotatedRect.size.height;
                 double angle = rotatedRect.angle;
-                if (r > 2 && r < 4) {
+                /*if (r > 2 && r < 4) {
                     if (angle - 50 < 0 && angle + 50 > 0) {
                         for (int i = 0; i < 4; i++) {
-                            line(binMat, points[i], points[(i + 1) % 4], new Scalar(255, 0, 0));
+                            line(resultMat, points[i], points[(i + 1) % 4], new Scalar(255, 0, 0));
                             result.add(matOfPoint);
                         }
                     }
+                }*/
+                for (int i = 0; i < 4; i++) {
+                    line(resultMat, points[i], points[(i + 1) % 4], new Scalar(255, 0, 0));
+                    result.add(matOfPoint);
                 }
                 Log.e(TAG, "angle:" + rotatedRect.angle + "r:" + r);
             }
         }
-        Log.e(TAG,"识别结果："+result.size());
+        Log.e(TAG, "识别结果：" + result.size());
         return result;
     }
 
     /*
     * 初步寻找出，符合车牌形状的候选区
     * */
-    private void findLicensePlates(List<MatOfPoint> contours) {
-        Imgproc.findContours(morphologyExMat, contours, new Mat(), Imgproc.RETR_EXTERNAL, CHAIN_APPROX_NONE);
+    private void findLicensePlates(List<MatOfPoint> contours,Mat mat) {
+        Imgproc.findContours(mat, contours, new Mat(), Imgproc.RETR_EXTERNAL, CHAIN_APPROX_NONE);
+        Imgproc.drawContours(resultMat,contours,-1,new Scalar(0,255,0),2);
     }
 
     /*
     * 功能：对mat进行闭操作，将车牌中的空洞联通起来
     * */
-    private Mat morphologyExDeal(Mat binMat) {
+    private void morphologyExDeal(Mat binMat) {
         Imgproc.morphologyEx(binMat, morphologyExMat, Imgproc.MORPH_CLOSE, kernel, anchor, iterations);
-        return morphologyExMat;
+//        return morphologyExMat;
         /*return dilateAndErode(binMat,7,1,2);*/
     }
 
-    private Mat dilateAndErode(Mat dstCon, int kernelSize, int point, int times) {
+    private Mat dilateAndErode(Mat srcMat, int kernelSize, int point, int times) {
         Mat kenrelX = getStructuringElement(CV_SHAPE_RECT,
                 new Size(kernelSize, 1));
         Point X = new Point(-point, 0);
@@ -207,7 +268,7 @@ public class LocateLicensePlateModel implements ILocateLicensePlateModel {
         Point Y = new Point(0, -point);
         Mat dilatMat = new Mat();
         //x方向膨胀把数字连通
-        dilate(dstCon, dilatMat, kenrelX, X, times);
+        dilate(srcMat, dilatMat, kenrelX, X, times);
         //x方向腐蚀去除碎片
         erode(dilatMat, dilatMat, kenrelX, X, 2 * times);
         //x方向膨胀回复形态
@@ -219,30 +280,74 @@ public class LocateLicensePlateModel implements ILocateLicensePlateModel {
 
         return dilatMat;
     }
+
     /*
     * 功能：对Mat进行二值化处理
     * */
-    private Mat binDeal(Mat sobelMat) {
+    private void binDeal(Mat sobelMat) {
         Imgproc.threshold(sobelMat, binMat, thresh, maxValue, type);
-        return binMat;
     }
 
     /*
     * 功能：通过sobel算子进行边缘提取
     * */
-    private Mat sobelDeal(Mat grayMat) {
-        Imgproc.Sobel(grayMat, sobelMat, ddepth, dx, dy, kSize, scale, delate, Core.BORDER_DEFAULT);
-        return sobelMat;
-    }
+    private void sobelDeal(Mat grayMat) {
 
+//        Imgproc.Sobel(grayMat, sobelMat, ddepth, dx, dy, kSize, scale, delate, Core.BORDER_DEFAULT);
+        Imgproc.Sobel(grayMat, sobelMat,CvType.CV_8U, 1, 0, 3, 2, 0, Core.BORDER_DEFAULT);
+    }
+    /*
+    * 首先对图片进行高斯滤波，滤除一些杂乱的信息
+    * */
+
+    private Mat Guass(Bitmap picBitmap){
+        Utils.bitmapToMat(picBitmap,srcMat);
+        Mat guassMat = new Mat();
+        Imgproc.GaussianBlur(srcMat,guassMat,gaussianBlurSize,Core.BORDER_DEFAULT);
+        return guassMat;
+    }
     /*
     * 功能：将彩色bitmap转为灰色Mat
     * 参数picBitmap：待转换的bitmap
     * 返回值：转换好的灰色Mat
     * */
-    private Mat ChangeToGray(Bitmap picBitmap) {
-        Utils.bitmapToMat(picBitmap, srcMat);
+    private Mat ChangeToGray(Mat srcMat) {
         Imgproc.cvtColor(srcMat, grayMat, Imgproc.COLOR_RGB2GRAY);
         return grayMat;
+    }
+
+    /*
+    * 对检测出来的车牌进行仿射变换，修复车牌的角度
+    * */
+    private Mat doAffineTransform(Mat resultMat) {
+        List<Point> srcPoints = new ArrayList<>();
+        List<Point> dstPoints = new ArrayList<>();
+
+        srcPoints.add(new Point(0, 0));
+        srcPoints.add(new Point(resultMat.cols() - 1, 0));
+        srcPoints.add(new Point(0, resultMat.rows() - 1));
+
+        dstPoints.add(new Point(resultMat.cols() * 0.0, resultMat.rows() * 0.33));
+        dstPoints.add(new Point(resultMat.cols() * 0.65, resultMat.rows() * 0.35));
+        dstPoints.add(new Point(resultMat.cols() * 0.15, resultMat.rows() * 0.6));
+
+        MatOfPoint2f src = new MatOfPoint2f();
+        src.fromList(srcPoints);
+        MatOfPoint2f dst = new MatOfPoint2f();
+        dst.fromList(dstPoints);
+
+        Mat tranMat;
+        tranMat = Imgproc.getAffineTransform(src, dst);
+
+        Imgproc.warpAffine(resultMat, resultMat, tranMat, resultMat.size());
+
+        /*Point center = new Point( tranMat.cols()/2, tranMat.rows()/2 );
+        double angle = -30.0;
+        double scale = 0.8;
+        Mat rotMat = getRotationMatrix2D( center, angle, scale );
+        Imgproc.warpAffine(tranMat,tranMat,rotMat,tranMat.size());
+*/
+        return tranMat;
+
     }
 }
