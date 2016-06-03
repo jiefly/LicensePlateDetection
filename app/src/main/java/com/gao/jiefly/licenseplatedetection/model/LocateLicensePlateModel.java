@@ -24,7 +24,7 @@ import java.util.List;
 
 import static org.opencv.imgproc.Imgproc.CHAIN_APPROX_NONE;
 import static org.opencv.imgproc.Imgproc.COLOR_RGB2HSV;
-import static org.opencv.imgproc.Imgproc.CV_SHAPE_RECT;
+import static org.opencv.imgproc.Imgproc.MORPH_CLOSE;
 import static org.opencv.imgproc.Imgproc.dilate;
 import static org.opencv.imgproc.Imgproc.erode;
 import static org.opencv.imgproc.Imgproc.getStructuringElement;
@@ -190,7 +190,7 @@ public class LocateLicensePlateModel implements ILocateLicensePlateModel {
         sobelDeal(grayMat);
         binDeal(sobelMat);
         morphologyExDeal(binMat);
-//        morphologyExMat = dilateAndErode(binMat,10,1,1);
+//        morphologyExMat = dilateAndErode(binMat,20,1,1);
         findLicensePlates(contours,morphologyExMat);
 
         contours = filterLicensePlates(contours);
@@ -215,26 +215,32 @@ public class LocateLicensePlateModel implements ILocateLicensePlateModel {
     private List<MatOfPoint> filterLicensePlates(List<MatOfPoint> contours) {
         List<MatOfPoint> result = new ArrayList<>();
         for (MatOfPoint matOfPoint : contours) {
-            if (Imgproc.contourArea(matOfPoint) > 500) {
+            if (Imgproc.contourArea(matOfPoint) > 1000) {
                 Log.e(TAG, matOfPoint.size().area() + "面积");
                 RotatedRect rotatedRect = Imgproc.minAreaRect(new MatOfPoint2f(matOfPoint.toArray()));
                 Point[] points = new Point[4];
                 rotatedRect.points(points);
-
-                float r = (float) rotatedRect.size.width / (float) rotatedRect.size.height;
+                Rect rect = Imgproc.boundingRect(matOfPoint);
+                /*int x, y, w, h;
+                x = rect.x;
+                y = rect.y;
+                w = rect.width;
+                h = rect.height;
+                Imgproc.rectangle(resultMat, new Point(x, y), new Point(x + w, y + h), new Scalar(255, 255, 0), 2);*/
+                float r = (float) rect.size().width / (float) rect.size().height;
                 double angle = rotatedRect.angle;
-                /*if (r > 2 && r < 4) {
-                    if (angle - 50 < 0 && angle + 50 > 0) {
+                if (r > 3.1 && r < 4) {
+//                    if (angle - 50 < 0 && angle + 50 > 0) {
                         for (int i = 0; i < 4; i++) {
                             line(resultMat, points[i], points[(i + 1) % 4], new Scalar(255, 0, 0));
                             result.add(matOfPoint);
                         }
-                    }
-                }*/
-                for (int i = 0; i < 4; i++) {
-                    line(resultMat, points[i], points[(i + 1) % 4], new Scalar(255, 0, 0));
-                    result.add(matOfPoint);
+//                    }
                 }
+                /*for (int i = 0; i < 4; i++) {
+//                    line(resultMat, points[i], points[(i + 1) % 4], new Scalar(255, 0, 0));
+                    result.add(matOfPoint);
+                }*/
                 Log.e(TAG, "angle:" + rotatedRect.angle + "r:" + r);
             }
         }
@@ -246,7 +252,8 @@ public class LocateLicensePlateModel implements ILocateLicensePlateModel {
     * 初步寻找出，符合车牌形状的候选区
     * */
     private void findLicensePlates(List<MatOfPoint> contours,Mat mat) {
-        Imgproc.findContours(mat, contours, new Mat(), Imgproc.RETR_EXTERNAL, CHAIN_APPROX_NONE);
+        Imgproc.findContours(mat, contours, new Mat(), Imgproc.RETR_CCOMP, CHAIN_APPROX_NONE);
+
         Imgproc.drawContours(resultMat,contours,-1,new Scalar(0,255,0),2);
     }
 
@@ -254,16 +261,18 @@ public class LocateLicensePlateModel implements ILocateLicensePlateModel {
     * 功能：对mat进行闭操作，将车牌中的空洞联通起来
     * */
     private void morphologyExDeal(Mat binMat) {
-        Imgproc.morphologyEx(binMat, morphologyExMat, Imgproc.MORPH_CLOSE, kernel, anchor, iterations);
+//        Imgproc.morphologyEx(binMat, morphologyExMat, Imgproc.MORPH_CLOSE, kernel, anchor, iterations);
+        Mat kernellll = getStructuringElement(Imgproc.MORPH_RECT,new Size(17,3));
+        Imgproc.morphologyEx(binMat,morphologyExMat,MORPH_CLOSE,kernellll);
 //        return morphologyExMat;
-        /*return dilateAndErode(binMat,7,1,2);*/
+//        morphologyExMat = dilateAndErode(binMat,7,1,2);
     }
 
     private Mat dilateAndErode(Mat srcMat, int kernelSize, int point, int times) {
-        Mat kenrelX = getStructuringElement(CV_SHAPE_RECT,
+        Mat kenrelX = getStructuringElement(Imgproc.CV_SHAPE_RECT,
                 new Size(kernelSize, 1));
         Point X = new Point(-point, 0);
-        Mat kenrelY = getStructuringElement(CV_SHAPE_RECT,
+        Mat kenrelY = getStructuringElement(Imgproc.CV_SHAPE_RECT,
                 new Size(1, kernelSize));
         Point Y = new Point(0, -point);
         Mat dilatMat = new Mat();
@@ -274,7 +283,7 @@ public class LocateLicensePlateModel implements ILocateLicensePlateModel {
         //x方向膨胀回复形态
         dilate(dilatMat, dilatMat, kenrelX, X, times);
         //y方向腐蚀去碎片
-        erode(dilatMat, dilatMat, kenrelY, Y, times / 2);
+        erode(dilatMat, dilatMat, kenrelY, Y, times/2);
         //y方向膨胀回复形态
         dilate(dilatMat, dilatMat, kenrelY, Y, times);
 
@@ -292,9 +301,22 @@ public class LocateLicensePlateModel implements ILocateLicensePlateModel {
     * 功能：通过sobel算子进行边缘提取
     * */
     private void sobelDeal(Mat grayMat) {
+  /*      Mat gradX = new Mat();
+        Mat gradY = new Mat();
+        Mat absGradX = new Mat();
+        Mat absGradY = new Mat();
+//        X
+        Imgproc.Sobel(grayMat,gradX,CvType.CV_8U,1,0,3,scale,delate,Core.BORDER_DEFAULT);
+        Core.convertScaleAbs(gradX,absGradX);
+//        Y
+        Imgproc.Sobel(grayMat,gradY,CvType.CV_8U,0,1,3,scale,delate,Core.BORDER_DEFAULT);
+        Core.convertScaleAbs(gradY,absGradY);
 
-//        Imgproc.Sobel(grayMat, sobelMat, ddepth, dx, dy, kSize, scale, delate, Core.BORDER_DEFAULT);
-        Imgproc.Sobel(grayMat, sobelMat,CvType.CV_8U, 1, 0, 3, 2, 0, Core.BORDER_DEFAULT);
+        Core.addWeighted(absGradX,1,absGradY,0,0,sobelMat);*/
+
+
+        Imgproc.Sobel(grayMat, sobelMat, ddepth, dx, dy, kSize, scale, delate, Core.BORDER_DEFAULT);
+//        Imgproc.Sobel(grayMat, sobelMat,CvType.CV_8U, 1, 0, 3, 1, 0.3, Core.BORDER_DEFAULT);
     }
     /*
     * 首先对图片进行高斯滤波，滤除一些杂乱的信息

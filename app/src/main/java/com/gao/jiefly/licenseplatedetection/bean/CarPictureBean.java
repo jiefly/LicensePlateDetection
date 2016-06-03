@@ -21,17 +21,17 @@ import static org.opencv.imgproc.Imgproc.getStructuringElement;
 public class CarPictureBean {
     private static final Size DEFAULT_GAUSSIAN_BLUR_SIZE = new Size(3,3);
     private static final int DEFAULT_DDEPTH = CvType.CV_8U;
-    private static final int DEFAULT_DX = 2;
+    private static final int DEFAULT_DX = 1;
     private static final int DEFAULT_DY = 0;
     private static final int DEFAULT_KSIZE = 3;
-    private static final double DEFAULT_SCALE = 2;
+    private static final double DEFAULT_SCALE = 1;
     private static final double DEFAULT_DELATE = 0;
-    private static final int DEFAULT_TYPE = Imgproc.THRESH_OTSU +Imgproc.THRESH_BINARY;
+    private static final int DEFAULT_TYPE = Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY;
     private static final int DEAFULT_MAX_VALUE = 255;
-    private static final int DEFAULT_THRESH = 0;
-    private static final Mat DEFAULT_KERNEL = getStructuringElement(Imgproc.MORPH_RECT, new Size(17, 13));
+    private static final int DEFAULT_THRESH = 1;
+    private static final Mat DEFAULT_KERNEL = getStructuringElement(Imgproc.MORPH_RECT, new Size(17, 3));
     private static final int DEFAULT_ITERATIONS = 1;
-    private static final Point DEFAULT_ANCHOR = new Point(-1,-1);
+    private static final Point DEFAULT_ANCHOR = new Point(1,1);
     private static final List<Mat> DEFAULT_RESULTS = new ArrayList<>();
 
 //    汽车照片名称
