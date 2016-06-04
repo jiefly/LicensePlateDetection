@@ -102,20 +102,29 @@ public class View extends Activity implements IView {
 
     @Override
     public void showLicensePlate(List<Bitmap> bitmaps) {
-//        原图
-        mIvSrc.setImageBitmap(bitmaps.get(0));
-//        高斯滤波
-        mIvGuass.setImageBitmap(bitmaps.get(1));
-//        灰度化
-        mIvGray.setImageBitmap(bitmaps.get(2));
-//        sobel边缘提取
-        mIvSobel.setImageBitmap(bitmaps.get(3));
-//        二值化
-        mIvBin.setImageBitmap(bitmaps.get(4));
-//        闭操作
-        mIvMorphologyEx.setImageBitmap(bitmaps.get(5));
-//        检测结果
-        mIvResult.setImageBitmap(bitmaps.get(6));
+        switch (bitmaps.size()) {
+            case 7:
+                //        检测结果
+                mIvResult.setImageBitmap(bitmaps.get(6));
+            case 6:
+                //        闭操作
+                mIvMorphologyEx.setImageBitmap(bitmaps.get(5));
+            case 5:
+                //        二值化
+                mIvBin.setImageBitmap(bitmaps.get(4));
+            case 4:
+                //        sobel边缘提取
+                mIvSobel.setImageBitmap(bitmaps.get(3));
+            case 3:
+                //        灰度化
+                mIvGray.setImageBitmap(bitmaps.get(2));
+            case 2:
+                //        高斯滤波
+                mIvGuass.setImageBitmap(bitmaps.get(1));
+            case 1:
+                //        原图
+                mIvSrc.setImageBitmap(bitmaps.get(0));
+        }
     }
 
     @Override
@@ -144,7 +153,7 @@ public class View extends Activity implements IView {
     public void onClick(android.view.View view) {
         switch (view.getId()) {
             case R.id.btnLocate:
-                mPresenter.showLocateResult();
+                mPresenter.showLocateResult(1);
                 break;
             case R.id.btnSegmentation:
                 mPresenter.showCharacters();

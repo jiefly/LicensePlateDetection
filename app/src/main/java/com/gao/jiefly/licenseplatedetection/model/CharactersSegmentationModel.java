@@ -6,9 +6,11 @@ import com.gao.jiefly.licenseplatedetection.Util;
 import com.gao.jiefly.licenseplatedetection.bean.CharacterBean;
 import com.gao.jiefly.licenseplatedetection.bean.LicensePlateBean;
 
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
@@ -112,6 +114,8 @@ public class CharactersSegmentationModel implements IcharactersSegmentationModel
 
     @Override
     public List<CharacterBean> getCharacter(int threshold, int num) {
+//        修正车牌的角度
+        LicensePlateAmendment();
 //        获取待分割车牌的水平方向投影，用于切除上下部分多余的地方
         resultH = Projection(srcMat, 0).get("H");
 /*//        获取resultH中的最小值，作为切割的阈值
@@ -135,6 +139,43 @@ public class CharactersSegmentationModel implements IcharactersSegmentationModel
         thresholdV = minV + 1;
         results = cutV(matH, resultV, thresholdV, 8);
         return results;
+    }
+
+    private void LicensePlateAmendment() {
+//        车牌水平膨胀
+        Mat srcMat = mLicensePlateBean.getSrcMat().clone();
+        Imgproc.cvtColor(srcMat, srcMat, Imgproc.COLOR_BGR2GRAY, 4);
+//        Imgproc.dilate(srcMat,srcMat,Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT,new Size(5,1),new Point(-1,0)));
+//        水平差分，为了获取边缘
+        Imgproc.Sobel(srcMat, srcMat, CvType.CV_8U,1,0);
+        Imgproc.threshold(srcMat, srcMat, 0, 255, Imgproc.THRESH_OTSU);
+//        进行hough直线检测，
+        Mat lines = new Mat();
+        Imgproc.HoughLinesP(srcMat, lines, 1, Math.PI / 180, 200, 50, 10);
+
+//        计算检测到的直线的角度
+        int[] a = new int[(int) lines.total() * lines.channels()];
+        if (a.length >= 4) {
+            //数组a存储检测出的直线端点坐标
+            lines.get(0, 0, a);
+            int max = 0;
+//        获取最长的直线作为检测偏转角的直线
+            int maxIndex = 0;
+            for (int x = 0; x < a.length; x += 4) {
+                Point start = new Point(a[x], a[x + 1]);
+                Point end = new Point(a[x + 2], a[x + 3]);
+                if (Util.getLenFromTwoPoint(start, end) > max) {
+                    maxIndex = x;
+                    max = Util.getLenFromTwoPoint(start, end);
+                }
+            }
+            Imgproc.line(mLicensePlateBean.getSrcMat(), new Point(a[maxIndex], a[maxIndex + 1]), new Point(a[maxIndex + 2], a[maxIndex + 3]), new Scalar(255, 0, 0), 3);
+
+//        计算角度
+            double angle = Math.toDegrees(Math.atan((a[maxIndex + 3] - a[maxIndex + 1]) / (a[maxIndex + 2] - a[maxIndex])));
+            Log.e("CharacterSegmentation", "angle:" + angle);
+        }
+
     }
 
     /*

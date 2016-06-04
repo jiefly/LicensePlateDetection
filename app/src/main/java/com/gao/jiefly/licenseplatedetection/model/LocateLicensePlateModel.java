@@ -23,10 +23,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.opencv.imgproc.Imgproc.CHAIN_APPROX_NONE;
+import static org.opencv.imgproc.Imgproc.CHAIN_APPROX_SIMPLE;
 import static org.opencv.imgproc.Imgproc.COLOR_RGB2HSV;
 import static org.opencv.imgproc.Imgproc.MORPH_CLOSE;
 import static org.opencv.imgproc.Imgproc.dilate;
+import static org.opencv.imgproc.Imgproc.drawContours;
 import static org.opencv.imgproc.Imgproc.erode;
+import static org.opencv.imgproc.Imgproc.findContours;
 import static org.opencv.imgproc.Imgproc.getStructuringElement;
 import static org.opencv.imgproc.Imgproc.line;
 
@@ -98,6 +101,12 @@ public class LocateLicensePlateModel implements ILocateLicensePlateModel {
     Mat sobelMat = new Mat();
     Mat binMat = new Mat();
 
+    public Mat getHsvMat() {
+        return hsvMat;
+    }
+
+    Mat hsvMat = new Mat();
+
     public Mat getResultMat() {
         return resultMat;
     }
@@ -147,24 +156,29 @@ public class LocateLicensePlateModel implements ILocateLicensePlateModel {
         Utils.bitmapToMat(carPictureBean.getPicBitmap(),srcMat);
 
 //        将含有车牌的照片从rgb色域转为hsv色域
-        Mat hsvMat = new Mat(srcMat.width(),srcMat.height(), CvType.CV_8UC3);
+        hsvMat = new Mat(srcMat.width(),srcMat.height(), CvType.CV_8UC3);
         ChangeToHSV(srcMat,hsvMat);
 //        检测照片中的蓝色色域的区域
-        Mat mat = findColor(hsvMat);
+        Mat mat = findColor(hsvMat,grayMat);
+        hsvMat = dilateAndErode(mat,3,1,2);
+
+        findContours(hsvMat,contours,new Mat(),Imgproc.RETR_LIST, CHAIN_APPROX_SIMPLE);
+        drawContours(hsvMat,contours,-1,new Scalar(255,0,0));
+        filterLicensePlates(contours);
+//        resultMat = mat;
 //        从蓝色色域的区域检测出外接矩为矩形的区域，将至作为初步的车牌候选区
-        findLicensePlates(contours,mat);
+//        findLicensePlates(contours,mat);
 //        从这些候选区当中过滤掉宽高比不符，以及size过于小的区域
-        contours = filterLicensePlates(contours);
+//        contours = filterLicensePlates(contours);
         return getLicensePlateFormContours(contours);
     }
 
     /*
     * 找出hsvMat中的蓝色区域，并将其他区域设为0
     * */
-    private Mat findColor(Mat hsvMat) {
+    private Mat findColor(Mat hsvMat,Mat dstMat) {
         Scalar lowerThreshold = new Scalar(75, 90, 90);
         Scalar upperThreshold = new Scalar(140, 255, 255);
-        Mat dstMat = new Mat();
         Core.inRange(hsvMat, lowerThreshold, upperThreshold, dstMat);
         return dstMat;
     }
@@ -215,7 +229,7 @@ public class LocateLicensePlateModel implements ILocateLicensePlateModel {
     private List<MatOfPoint> filterLicensePlates(List<MatOfPoint> contours) {
         List<MatOfPoint> result = new ArrayList<>();
         for (MatOfPoint matOfPoint : contours) {
-            if (Imgproc.contourArea(matOfPoint) > 1000) {
+            if (Imgproc.contourArea(matOfPoint) > 500) {
                 Log.e(TAG, matOfPoint.size().area() + "面积");
                 RotatedRect rotatedRect = Imgproc.minAreaRect(new MatOfPoint2f(matOfPoint.toArray()));
                 Point[] points = new Point[4];
@@ -254,7 +268,7 @@ public class LocateLicensePlateModel implements ILocateLicensePlateModel {
     private void findLicensePlates(List<MatOfPoint> contours,Mat mat) {
         Imgproc.findContours(mat, contours, new Mat(), Imgproc.RETR_CCOMP, CHAIN_APPROX_NONE);
 
-        Imgproc.drawContours(resultMat,contours,-1,new Scalar(0,255,0),2);
+        drawContours(resultMat,contours,-1,new Scalar(0,255,0),2);
     }
 
     /*

@@ -27,6 +27,13 @@ import java.util.Vector;
  * Fighting_jiiiiie
  */
 public class Util {
+
+    /*
+    * 计算两个点之间的距离
+    * */
+    public static int getLenFromTwoPoint(Point start,Point end){
+        return (int) Math.sqrt((start.x - end.x)*(start.x - end.x)+(start.y - end.y)*(start.y - end.y));
+    }
     /**
      * 保存图片
      * 参数picName:要保存的图片的名称
