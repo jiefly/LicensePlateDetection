@@ -12,4 +12,5 @@ import java.util.List;
 public interface IView {
     void showLicensePlate(List<Bitmap> bitmaps);
     void showCharacters(List<Bitmap> characters);
+    void showToast(String s);
 }

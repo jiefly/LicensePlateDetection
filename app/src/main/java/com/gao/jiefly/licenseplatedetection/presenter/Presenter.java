@@ -1,10 +1,14 @@
 package com.gao.jiefly.licenseplatedetection.presenter;
 
 import android.graphics.Bitmap;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
 
 import com.gao.jiefly.licenseplatedetection.bean.CarPictureBean;
 import com.gao.jiefly.licenseplatedetection.bean.CharacterBean;
 import com.gao.jiefly.licenseplatedetection.bean.LicensePlateBean;
+import com.gao.jiefly.licenseplatedetection.listener.CharacterSegmentationListener;
 import com.gao.jiefly.licenseplatedetection.model.CharactersSegmentationModel;
 import com.gao.jiefly.licenseplatedetection.model.IcharactersSegmentationModel;
 import com.gao.jiefly.licenseplatedetection.model.LocateLicensePlateModel;
@@ -27,7 +31,24 @@ public class Presenter {
     private CarPictureBean mCarPictureBean;
     private LicensePlateBean mLicensePlateBean;
     private IView mIView;
+    private static final int SEGMENT_OK = 1;
+    private static final int SEGMENT_FAILED = 0;
 
+    Handler mHandler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what){
+                case SEGMENT_OK:
+                    mIView.showCharacters(characters);
+                    characters.clear();
+                    break;
+                case SEGMENT_FAILED:
+                    mIView.showToast("分割字符失败··· ");
+                    break;
+            }
+        }
+    };
+    List<Bitmap> characters = new ArrayList<>();
     public Presenter(IView IView) {
         mIView = IView;
     }
@@ -129,13 +150,30 @@ public class Presenter {
     * 显示分割结果
     * */
     public void showCharacters() {
-        List<Bitmap> characters = new ArrayList<>();
         mSegmentationModel = new CharactersSegmentationModel(mLicensePlateBean);
-        List<CharacterBean> characterBeanList = mSegmentationModel.getCharacter(10, 8);
-        for (CharacterBean characterBean : characterBeanList) {
-            characters.add(getBitmapFromMat(characterBean.getSrcMat()));
-        }
-        mIView.showCharacters(characters);
+        mSegmentationModel.setListener(new CharacterSegmentationListener() {
+            @Override
+            public void onSuccess(List<CharacterBean> results) {
+                Log.e("jiefly","success---segmentation");
+                for (CharacterBean characterBean : results) {
+                    characters.add(getBitmapFromMat(characterBean.getSrcMat()));
+                }
+                mHandler.sendEmptyMessage(1);
+            }
+
+            @Override
+            public void onFailed() {
+                mHandler.sendEmptyMessage(0);
+                Log.e("jiefly","failed---segmentation");
+            }
+        });
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                mSegmentationModel.getCharacter(10, 8);
+            }
+        }).start();
+
     }
 
     private Bitmap getBitmapFromMat(Mat mat) {

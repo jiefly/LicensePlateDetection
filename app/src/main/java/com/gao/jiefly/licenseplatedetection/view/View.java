@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.gao.jiefly.licenseplatedetection.R;
 import com.gao.jiefly.licenseplatedetection.presenter.Presenter;
@@ -147,6 +148,11 @@ public class View extends Activity implements IView {
             case 1:
                 mIv1.setImageBitmap(characters.get(0));
         }
+    }
+
+    @Override
+    public void showToast(String s) {
+        Toast.makeText(getApplicationContext(),s,Toast.LENGTH_SHORT).show();
     }
 
     @OnClick({R.id.btnLocate, R.id.btnSegmentation, R.id.btnGetPic, R.id.btnGetLicensePlate})

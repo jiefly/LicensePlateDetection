@@ -5,12 +5,12 @@ import android.util.Log;
 import com.gao.jiefly.licenseplatedetection.Util;
 import com.gao.jiefly.licenseplatedetection.bean.CharacterBean;
 import com.gao.jiefly.licenseplatedetection.bean.LicensePlateBean;
+import com.gao.jiefly.licenseplatedetection.listener.CharacterSegmentationListener;
 
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
-import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
@@ -32,7 +32,13 @@ public class CharactersSegmentationModel implements IcharactersSegmentationModel
     private Mat matH;
     //    车牌的水平投影
     private int[] resultH;
+
+    public void setListener(CharacterSegmentationListener listener) {
+        mListener = listener;
+    }
+
     //    切割好之后的车牌的垂直投影
+    private CharacterSegmentationListener mListener;
 
     public LicensePlateBean getLicensePlateBean() {
         return mLicensePlateBean;
@@ -107,13 +113,13 @@ public class CharactersSegmentationModel implements IcharactersSegmentationModel
     public CharactersSegmentationModel(LicensePlateBean licensePlateBean) {
         mLicensePlateBean = licensePlateBean;
         srcMat = mLicensePlateBean.getSrcMat();
-        thresholdH = srcMat.cols() / 5;
+        thresholdH = srcMat.cols() / 10;
     }
 
     private LicensePlateBean mLicensePlateBean;
 
     @Override
-    public List<CharacterBean> getCharacter(int threshold, int num) {
+    public void getCharacter(int threshold, int num) {
 //        修正车牌的角度
         LicensePlateAmendment();
 //        获取待分割车牌的水平方向投影，用于切除上下部分多余的地方
@@ -138,20 +144,26 @@ public class CharactersSegmentationModel implements IcharactersSegmentationModel
         }
         thresholdV = minV + 1;
         results = cutV(matH, resultV, thresholdV, 8);
-        return results;
+        if (results.size()<1)
+            mListener.onFailed();
+        else
+            mListener.onSuccess(results);
     }
 
     private void LicensePlateAmendment() {
 //        车牌水平膨胀
         Mat srcMat = mLicensePlateBean.getSrcMat().clone();
-        Imgproc.cvtColor(srcMat, srcMat, Imgproc.COLOR_BGR2GRAY, 4);
-//        Imgproc.dilate(srcMat,srcMat,Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT,new Size(5,1),new Point(-1,0)));
-//        水平差分，为了获取边缘
-        Imgproc.Sobel(srcMat, srcMat, CvType.CV_8U,1,0);
+//        滤除噪点
+        Imgproc.GaussianBlur(srcMat,srcMat,new Size(5,5),1);
+//        转换为gray
+        Imgproc.cvtColor(srcMat, srcMat, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.dilate(srcMat,srcMat,Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT,new Size(9,1),new Point(-1,0)));
+//        获取边缘
+        Imgproc.Canny(srcMat,srcMat,50,150);
         Imgproc.threshold(srcMat, srcMat, 0, 255, Imgproc.THRESH_OTSU);
 //        进行hough直线检测，
         Mat lines = new Mat();
-        Imgproc.HoughLinesP(srcMat, lines, 1, Math.PI / 180, 200, 50, 10);
+        Imgproc.HoughLinesP(srcMat, lines, 1, Math.PI / 180,50,50,10);
 
 //        计算检测到的直线的角度
         int[] a = new int[(int) lines.total() * lines.channels()];
@@ -169,10 +181,16 @@ public class CharactersSegmentationModel implements IcharactersSegmentationModel
                     max = Util.getLenFromTwoPoint(start, end);
                 }
             }
-            Imgproc.line(mLicensePlateBean.getSrcMat(), new Point(a[maxIndex], a[maxIndex + 1]), new Point(a[maxIndex + 2], a[maxIndex + 3]), new Scalar(255, 0, 0), 3);
+//            Imgproc.line(mLicensePlateBean.getSrcMat(), new Point(a[maxIndex], a[maxIndex + 1]), new Point(a[maxIndex + 2], a[maxIndex + 3]), new Scalar(255, 0, 0), 3);
 
 //        计算角度
-            double angle = Math.toDegrees(Math.atan((a[maxIndex + 3] - a[maxIndex + 1]) / (a[maxIndex + 2] - a[maxIndex])));
+            double angle = Math.toDegrees(Math.atan2((double) (a[maxIndex + 3] - a[maxIndex + 1]),(double) (a[maxIndex + 2] - a[maxIndex])));
+//            获取旋转中心
+            Point center = new Point();
+            center.x = srcMat.cols()/2;
+            center.y = srcMat.rows()/2;
+            Mat m = Imgproc.getRotationMatrix2D(center,angle,1);
+            Imgproc.warpAffine(this.srcMat,this.srcMat,m,new Size(srcMat.width(),srcMat.height()));
             Log.e("CharacterSegmentation", "angle:" + angle);
         }
 
@@ -285,11 +303,11 @@ public class CharactersSegmentationModel implements IcharactersSegmentationModel
             if (resultH[i] < minValue + minAfter && i > top) {
 
 //                如果下部分割点再总长度的六分之五以前则需要进一步验证这个分割点的正确性
-                if (i < 9 * len / 10) {
+                if (i < 11 * len / 12) {
 //                    验证之后的十个点是否也都小于阈值，都小于阈值才被判断为正确的分割点
                     boolean isTrue = true;
-                    for (int j = i; j < i + 2; j++) {
-                        if (resultH[j] > minAfter) {
+                    for (int j = i; j < i + 4; j++) {
+                        if (resultH[j] > minAfter+minValue) {
                             isTrue = false;
                             break;
                         }

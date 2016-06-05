@@ -1,8 +1,6 @@
 package com.gao.jiefly.licenseplatedetection.model;
 
-import com.gao.jiefly.licenseplatedetection.bean.CharacterBean;
-
-import java.util.List;
+import com.gao.jiefly.licenseplatedetection.listener.CharacterSegmentationListener;
 
 /**
  * Created by jiefly on 2016/6/1.
@@ -10,5 +8,6 @@ import java.util.List;
  * Fighting_jiiiiie
  */
 public interface IcharactersSegmentationModel {
-    List<CharacterBean> getCharacter(int threshold,int num);
+    void getCharacter(int threshold, int num);
+    void setListener(CharacterSegmentationListener listener);
 }
